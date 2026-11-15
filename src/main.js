@@ -109,18 +109,13 @@ function renderFromCurrentState() {
   renderEmbeddings();
   renderTransformerDiagram();
   renderProbabilities();
-  autoResizePromptInput();
+  scrollPromptInputToEnd();
 }
 
-function autoResizePromptInput() {
+function scrollPromptInputToEnd() {
   if (!el.promptInput) return;
-  if (el.promptInput.tagName === "TEXTAREA") {
-    el.promptInput.style.height = "auto";
-    el.promptInput.style.height = `${Math.min(110, Math.max(38, el.promptInput.scrollHeight))}px`;
-    el.promptInput.scrollTop = el.promptInput.scrollHeight;
-  } else {
-    el.promptInput.scrollLeft = el.promptInput.scrollWidth;
-  }
+  el.promptInput.scrollTop = el.promptInput.scrollHeight;
+  el.promptInput.scrollLeft = el.promptInput.scrollWidth;
 }
 
 function renderPresetPills() {

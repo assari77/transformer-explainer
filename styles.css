@@ -233,9 +233,10 @@ body {
 
 .sentence-input {
   flex: 1;
-  min-height: 38px;
-  max-height: 110px;
-  padding: 8px 12px;
+  height: 54px;
+  min-height: 54px;
+  max-height: 54px;
+  padding: 6px 12px;
   border: 1.5px solid #cbd5e1;
   border-radius: 6px;
   font-family: inherit;
@@ -353,6 +354,8 @@ body {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
+  height: 510px;
+  max-height: 510px;
 }
 
 .panel-header {
@@ -390,9 +393,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  max-height: 420px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
 }
 
 .embedding-row {

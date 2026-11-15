@@ -65,4 +65,8 @@ test("Generates natural, grammatically coherent continuations for custom everyda
   assert.deepEqual(trace5.tokens, ["every", "morning", "i", "feed", "my"]);
   assert.equal(trace5.selectedToken, "cat");
   assert.ok(!trace5.topPredictions.map((p) => p.token).includes("parrot"));
+
+  // 6. Classic idiom: "it was a dark and stormy" -> "night"
+  const trace6 = forwardTransformer(tokenize("it was a dark and stormy"), 0.5, Math.random, 15);
+  assert.equal(trace6.selectedToken, "night");
 });

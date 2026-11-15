@@ -138,7 +138,8 @@ export function forwardTransformer(
   tokens,
   temperature = 0.5,
   rng = Math.random,
-  contextWindow = 10
+  contextWindow = 10,
+  externalCandidates = null
 ) {
   const allTokens = Array.isArray(tokens) && tokens.length > 0 ? tokens : ["The"];
   const maxWin = Math.max(1, Math.floor(Number(contextWindow) || 10));
@@ -193,8 +194,11 @@ export function forwardTransformer(
   });
   const finalHiddenState = layerNorm(addVectors(residual1, mlpOut, 0.5));
 
-  // 3. Language Model Head: Only sees `activeTokens` inside the Context Window!
-  const candidateEntries = predictContextualCandidates(activeTokens);
+  // 3. Language Model Head: Uses real GPT-2 candidates when available, or built-in contextual LM
+  const candidateEntries =
+    Array.isArray(externalCandidates) && externalCandidates.length > 0
+      ? externalCandidates
+      : predictContextualCandidates(activeTokens);
   const rawLogits = candidateEntries.map((entry) => {
     const candEmb = getTokenEmbedding(entry.token);
     const smallAlignment = dotProduct(finalHiddenState, candEmb) * 0.04;

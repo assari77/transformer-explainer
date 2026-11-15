@@ -1,16 +1,21 @@
 import { PRESET_PROMPTS } from "./presets.js";
 import { tokenize, forwardTransformer, selectNextToken } from "./transformer.js";
 import { renderVectorStrip } from "./heatmap.js";
+import { initGpt2, predictGpt2Candidates, getGpt2Status } from "./gpt2.js";
 
 const state = {
   baseText: PRESET_PROMPTS[0].text,
   currentText: PRESET_PROMPTS[0].text,
   temperature: 0.5,
   contextWindow: 10,
+  gpt2Candidates: null,
+  lastActiveKey: "",
+  reqSeq: 0,
   trace: null,
 };
 
 const el = {
+  modelStatusBadge: document.getElementById("model-status-badge"),
   promptInput: document.getElementById("prompt-input"),
   sentenceTokenCount: document.getElementById("sentence-token-count"),
   presetPills: document.getElementById("preset-pills"),
@@ -39,7 +44,37 @@ function getTemperatureLabel(t) {
 
 function updateAndRender() {
   const tokens = tokenize(state.currentText);
-  state.trace = forwardTransformer(tokens, state.temperature, Math.random, state.contextWindow);
+  const maxWin = Math.max(1, Math.floor(Number(state.contextWindow) || 10));
+  const activeTokens = tokens.slice(Math.max(0, tokens.length - maxWin));
+  const activeKey = activeTokens.join(" ").trim();
+
+  // If the active window text changed and GPT-2 is ready, query real GPT-2 logits
+  const { isReady } = getGpt2Status();
+  if (isReady && activeKey !== state.lastActiveKey) {
+    state.lastActiveKey = activeKey;
+    const seq = ++state.reqSeq;
+    predictGpt2Candidates(activeTokens).then((cands) => {
+      if (seq === state.reqSeq && cands) {
+        state.gpt2Candidates = cands;
+        renderFromCurrentState();
+      }
+    });
+  } else if (!isReady) {
+    state.gpt2Candidates = null;
+  }
+
+  renderFromCurrentState();
+}
+
+function renderFromCurrentState() {
+  const tokens = tokenize(state.currentText);
+  state.trace = forwardTransformer(
+    tokens,
+    state.temperature,
+    Math.random,
+    state.contextWindow,
+    state.gpt2Candidates
+  );
 
   const totalTokens = state.trace.allTokens.length;
   const activeCount = state.trace.tokens.length;
@@ -399,3 +434,15 @@ if (el.contextSlider) {
   el.contextSlider.value = String(state.contextWindow);
 }
 updateAndRender();
+
+// Start loading real in-browser GPT-2 (Xenova/distilgpt2) in the background
+initGpt2((statusText, ready) => {
+  if (el.modelStatusBadge) {
+    el.modelStatusBadge.textContent = statusText;
+    el.modelStatusBadge.classList.toggle("ready", Boolean(ready));
+  }
+  if (ready) {
+    state.lastActiveKey = "";
+    updateAndRender();
+  }
+});

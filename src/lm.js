@@ -130,6 +130,8 @@ const ADJECTIVES = new Set([
   "large", "small", "fresh", "hot", "cold", "bright", "happy", "little", "big",
   "old", "young", "smart", "fast", "gentle", "sweet", "delicious", "clean", "modern",
   "green", "colorful", "clever", "friendly", "cute", "lovely",
+  "dark", "stormy", "rainy", "windy", "cloudy", "foggy", "chilly", "freezing",
+  "deep", "wide", "tall", "short", "long", "beautiful", "peaceful", "silent", "loud",
 ]);
 
 const KNOWN_NOUNS = new Set([
@@ -325,8 +327,11 @@ export function predictContextualCandidates(tokens) {
     );
   }
 
-  // 5. After an Adjective ("warm", "sunny", "complex", "new", "fresh", "hot", "soft", "quiet")
+  // 5. After an Adjective ("warm", "sunny", "complex", "new", "fresh", "hot", "soft", "quiet", "stormy", "dark")
   if (ADJECTIVES.has(last)) {
+    if (last === "stormy" || last === "dark" || last === "rainy" || last === "windy" || last === "foggy") {
+      return buildRankedList(["night", "evening", "sky", "day", "morning", "road"]);
+    }
     if (last === "complex" || last === "new" || last === "important" || last === "hidden" || last === "large") {
       return buildRankedList(["models", "patterns", "systems", "data", "ideas", "problems"]);
     }
@@ -405,6 +410,12 @@ export function predictContextualCandidates(tokens) {
 
   // 14. After Conjunction ("and", "then", "while", "because", "so")
   if (last === "and" || last === "then") {
+    if (prev === "dark") {
+      return buildRankedList(["stormy", "quiet", "cold", "windy", "silent", "rainy"]);
+    }
+    if (ADJECTIVES.has(prev)) {
+      return buildRankedList(["sunny", "warm", "quiet", "bright", "clear", "peaceful"]);
+    }
     if (recentVerb === "feed" || recentVerb === "fed") {
       return buildRankedList(["clean", "give", "water", "talk", "play", "drink", "eat"]);
     }

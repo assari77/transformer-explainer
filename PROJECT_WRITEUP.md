@@ -3,7 +3,11 @@
 ## 1. Overview
 We built an ultra-simple, zero-dependency version of the [Polo Club Transformer Explainer](https://poloclub.github.io/transformer-explainer/) using pure HTML5, CSS3, and ES6+ JavaScript modules. Users can type or select any partial sentence, watch it break into embeddings, view a live visual diagram of the Transformer in action, and adjust a **Temperature** slider (`0.1` to `2.0`) to see its real-time impact on next-token probabilities and word selection.
 
-- **Project Directory**: `C:\data\AGY\transformer-explainer`
+- **Live URL**: `https://transformer.learnsai.asia`
+- **Slide Deck URL**: `https://transformer.learnsai.asia/slides.html`
+- **GitHub Repository**: [assari77/transformer-explainer](https://github.com/assari77/transformer-explainer)
+- **VPS Host**: `194.233.94.120` (Ubuntu 22.04 LTS + Nginx + Let's Encrypt)
+- **Local Project Directory**: `C:\data\AGY\transformer-explainer`
 
 ---
 
@@ -35,3 +39,22 @@ We built an ultra-simple, zero-dependency version of the [Polo Club Transformer 
    - **1. EMBEDDING**: Shows the sentence broken into numbered word tokens and their 8D `Token + Positional` vector strips.
    - **2. TRANSFORMER IN ACTION**: Shows a live, animated SVG diagram of the Transformer architecture (`Input Tokens` $\to$ `Masked Self-Attention` $\to$ `Feed-Forward MLP` + `Residual & LayerNorm` $\to$ `Softmax(T)` $\to$ `Selected Word`).
    - **3. PROBABILITIES**: Displays the highlighted **Selected Next Token** card (`Resample` button) and the ranked candidate probability bars.
+
+---
+
+## 4. VPS Deployment & 6-Digit PIN Access Control
+1. **Static Site Hosting**: Cloned the repository to `/var/www/transformer.learnsai.asia` and configured an Nginx virtual host (`/etc/nginx/sites-available/transformer.learnsai.asia`).
+2. **HTTPS**: Issued and auto-renewed a Let's Encrypt TLS certificate via Certbot (`sudo certbot --nginx -d transformer.learnsai.asia --redirect`).
+3. **Server-Enforced 6-Digit Passcode Gate**:
+   - Reuses the standalone 6-digit PIN gate at `/var/www/tensor-gate/__pin.html` (outside the Git working tree so `git pull` remains clean).
+   - Configured Nginx to require an `HttpOnly; Secure; SameSite=Lax` cookie (`tf_access`) before serving any static files, verified via an internal `/__auth` endpoint.
+
+### Maintenance Commands on VPS
+- **Pull latest updates from GitHub**:
+  ```bash
+  sudo git -C /var/www/transformer.learnsai.asia pull
+  ```
+- **Test and reload Nginx**:
+  ```bash
+  sudo nginx -t && sudo systemctl reload nginx
+  ```

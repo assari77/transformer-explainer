@@ -165,6 +165,7 @@ const FUNCTION_STOPWORDS = new Set([
   ...PREPOSITIONS,
   ...KNOWN_VERBS,
   "every", "each", "and", "or", "but", "so", "because", "while", "when", "then", "to", "for", "of", "is", "are", "was", "were", "be", "been", "very", "really", "always", "usually", "often", "sometimes",
+  "middle", "end", "start", "beginning", "top", "bottom", "center", "side", "front", "back", "way", "part", "place", "rest", "fact", "moment", "lot", "kind", "sort",
 ]);
 
 export function cleanWord(w) {

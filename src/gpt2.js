@@ -2,7 +2,8 @@
  * Real In-Browser GPT-2 Engine powered by Hugging Face Transformers.js (Xenova/distilgpt2).
  * Loads quantized DistilGPT-2 (82M parameters) directly in the browser via WebAssembly,
  * caches weights in IndexedDB/CacheStorage, and extracts real next-word logits over the
- * 50,257-token vocabulary for the active Context Window.
+ * 50,257-token vocabulary for the active Context Window with standard LLM Repetition Penalty
+ * and No-Repeat N-gram blocking to prevent greedy repetition loops.
  */
 
 import { extractContextEntities } from "./lm.js";
@@ -18,6 +19,13 @@ let loadError = null;
 
 // Cache recent active-window queries so dragging the Temperature slider is 0ms instant
 const logitCache = new Map();
+
+// Common function words allowed to repeat naturally across clauses
+const ALLOWED_FUNCTION_REPEATS = new Set([
+  "the", "a", "an", "and", "or", "but", "to", "of", "in", "on", "at", "for", "with", "from", "by",
+  "i", "you", "he", "she", "it", "we", "they", "my", "your", "his", "her", "our", "their",
+  "is", "was", "are", "were", "be", "had", "have", "has", "that", "this", "as",
+]);
 
 export function getGpt2Status() {
   return { isLoading, isReady, loadError };
@@ -80,8 +88,8 @@ export async function predictGpt2Candidates(activeTokens) {
   const offset = (seqLen - 1) * vocabSize;
   const lastLogits = logits.data.subarray(offset, offset + vocabSize);
 
-  // Find the top 90 raw token IDs in O(V) time
-  const topK = 90;
+  // Find the top 140 raw token IDs in O(V) time
+  const topK = 140;
   const topIds = [];
   const topVals = [];
 
@@ -90,7 +98,6 @@ export async function predictGpt2Candidates(activeTokens) {
     if (topIds.length < topK) {
       topIds.push(id);
       topVals.push(val);
-      // Keep min at index 0
       if (topIds.length === topK) {
         sortPairsDesc(topIds, topVals);
       }
@@ -101,16 +108,31 @@ export async function predictGpt2Candidates(activeTokens) {
     }
   }
 
-  const lastWordLower = activeTokens[activeTokens.length - 1]
-    .toLowerCase()
-    .replace(/[^a-z]/g, "");
+  const cleanHistory = activeTokens.map((t) => t.toLowerCase().replace(/[^a-z]/g, ""));
+  const n = cleanHistory.length;
+  const lastWordLower = n > 0 ? cleanHistory[n - 1] : "";
+  const prevWordLower = n > 1 ? cleanHistory[n - 2] : "";
 
-  // Check if any context entities (e.g. "parrot" in "I have a parrot. Every morning I feed my")
-  // are in the active window when the prompt ends with a possessive or article
+  // Build a set of existing 2-grams ("prevWord -> nextWord") in the sentence to block 2-gram loops
+  // e.g. if "the middle" already appeared, block "middle" after "the"!
+  const existingBigramsFromLast = new Set();
+  for (let i = 0; i < n - 1; i++) {
+    if (cleanHistory[i] === lastWordLower) {
+      existingBigramsFromLast.add(cleanHistory[i + 1]);
+    }
+  }
+
+  // Count how many times each word has already appeared in the recent window
+  const wordCounts = new Map();
+  for (const w of cleanHistory) {
+    if (!w) continue;
+    wordCounts.set(w, (wordCounts.get(w) || 0) + 1);
+  }
+
+  // Check if any context entities were explicitly introduced (e.g. "I have a parrot ... feed my")
+  // Only boost on possessive endings ("my", "your", "his", "her", "our", "their"), NOT "the"
   const { entities: contextEntities } = extractContextEntities(activeTokens);
-  const isPossessiveOrArticleEnd = new Set([
-    "my", "your", "his", "her", "our", "their", "the",
-  ]).has(lastWordLower);
+  const isPossessiveEnd = new Set(["my", "your", "his", "her", "our", "their"]).has(lastWordLower);
 
   const candidates = [];
   const seenWords = new Set();
@@ -124,24 +146,46 @@ export async function predictGpt2Candidates(activeTokens) {
     const word = decoded.trim();
     const lower = word.toLowerCase();
 
-    // Avoid immediate repetition of the exact last word
-    if (lower === lastWordLower) continue;
+    // 1. Block immediate repetition ("word word") or alternating ("word X word")
+    if (lower === lastWordLower || lower === prevWordLower) continue;
     if (seenWords.has(lower)) continue;
+
+    // 2. Block exact 2-gram repetition (prevents "in the middle of the middle")
+    if (existingBigramsFromLast.has(lower) && !(isPossessiveEnd && contextEntities.includes(lower))) {
+      continue;
+    }
+
+    let adjustedLogit = topVals[i];
+
+    // 3. Apply standard LLM Frequency / Repetition Penalty to already-used content words
+    const priorCount = wordCounts.get(lower) || 0;
+    if (priorCount > 0 && !(isPossessiveEnd && contextEntities.includes(lower))) {
+      if (ALLOWED_FUNCTION_REPEATS.has(lower)) {
+        adjustedLogit -= priorCount * 0.6;
+      } else {
+        adjustedLogit -= priorCount * 3.2;
+      }
+    }
 
     seenWords.add(lower);
     candidates.push({
       token: word,
-      rawLogit: topVals[i],
+      rawLogit: adjustedLogit,
     });
-    if (candidates.length >= 8) break;
+    if (candidates.length >= 12) break;
   }
 
-  // If the sentence introduced a specific entity inside the active window (like "parrot")
-  // and ends with "my" / "the", ensure that entity is represented with strong Self-Attention recall
-  if (isPossessiveOrArticleEnd && contextEntities.length > 0 && candidates.length > 0) {
+  // Sort after repetition penalty adjustments
+  candidates.sort((a, b) => b.rawLogit - a.rawLogit);
+
+  // If the sentence ends with a possessive ("my", "her", "his") and an entity was introduced earlier
+  // in the active window (like "I have a parrot. Every morning I feed my"), boost that entity
+  if (isPossessiveEnd && contextEntities.length > 0 && candidates.length > 0) {
     const topRaw = candidates[0].rawLogit;
     for (let eIdx = contextEntities.length - 1; eIdx >= 0; eIdx--) {
       const ent = contextEntities[eIdx];
+      // Do not boost if the entity already appeared right after this same possessive
+      if (existingBigramsFromLast.has(ent)) continue;
       const existing = candidates.find((c) => c.token.toLowerCase() === ent.toLowerCase());
       if (existing) {
         existing.rawLogit = Math.max(existing.rawLogit, topRaw + 0.85);
@@ -173,7 +217,6 @@ export async function predictGpt2Candidates(activeTokens) {
 }
 
 function sortPairsDesc(ids, vals) {
-  // Simple insertion-style sort for small array (length <= 90)
   for (let i = 1; i < vals.length; i++) {
     const v = vals[i];
     const id = ids[i];

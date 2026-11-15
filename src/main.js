@@ -109,6 +109,18 @@ function renderFromCurrentState() {
   renderEmbeddings();
   renderTransformerDiagram();
   renderProbabilities();
+  autoResizePromptInput();
+}
+
+function autoResizePromptInput() {
+  if (!el.promptInput) return;
+  if (el.promptInput.tagName === "TEXTAREA") {
+    el.promptInput.style.height = "auto";
+    el.promptInput.style.height = `${Math.min(110, Math.max(38, el.promptInput.scrollHeight))}px`;
+    el.promptInput.scrollTop = el.promptInput.scrollHeight;
+  } else {
+    el.promptInput.scrollLeft = el.promptInput.scrollWidth;
+  }
 }
 
 function renderPresetPills() {
@@ -173,6 +185,8 @@ function renderEmbeddings() {
 
     el.embeddingTokenList.appendChild(row);
   });
+  // Keep newest tokens in view when list grows
+  el.embeddingTokenList.scrollTop = el.embeddingTokenList.scrollHeight;
 }
 
 /**

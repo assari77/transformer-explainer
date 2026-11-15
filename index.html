@@ -14,7 +14,7 @@
           <span></span><span></span><span></span><span></span>
         </div>
         <div>
-          <h1>Tinker With a <strong>Transformer</strong></h1>
+          <h1>Tinker With a <strong>Transformer</strong> <span id="app-version" class="version-badge">v1.3</span></h1>
           <p class="subtitle">Simple interactive next-token &amp; temperature explainer</p>
         </div>
       </div>
@@ -36,14 +36,13 @@
           <div id="preset-pills" class="preset-pills"></div>
         </div>
         <div class="sentence-input-row">
-          <input
+          <textarea
             id="prompt-input"
-            type="text"
+            rows="1"
             class="sentence-input"
-            value="Data visualization empowers users to"
             placeholder="Type a partial sentence..."
             aria-label="Partial sentence"
-          />
+          >Data visualization empowers users to</textarea>
           <button id="btn-generate" class="control-pill-btn start-btn" title="Append the selected token to the sentence">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path d="M8 5v14l11-7z"/>

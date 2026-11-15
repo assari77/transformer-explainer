@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transformer Explainer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>Tinker With a <strong>Transformer</strong></h1>
+          <p class="subtitle">Simple interactive next-token &amp; temperature explainer</p>
+        </div>
+      </div>
+      <div class="header-shortcuts">
+        <span class="kbd-hint">Type a partial sentence or adjust <strong>Temperature</strong></span>
+        <a href="slides.html" class="header-slides-btn">Slide Deck &rarr;</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Control Bar: Partial Sentence Input + Generate/Reset + Temperature Slider -->
+  <section class="top-controls">
+    <div class="controls-inner">
+      <!-- Partial Sentence Editor -->
+      <div class="sentence-editor">
+        <div class="editor-label-row">
+          <label for="prompt-input" class="control-label">Partial Sentence</label>
+          <div id="preset-pills" class="preset-pills"></div>
+        </div>
+        <div class="sentence-input-row">
+          <input
+            id="prompt-input"
+            type="text"
+            class="sentence-input"
+            value="Data visualization empowers users to"
+            placeholder="Type a partial sentence..."
+            aria-label="Partial sentence"
+          />
+          <button id="btn-generate" class="control-pill-btn start-btn" title="Append the selected token to the sentence">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span>Append Selected</span>
+          </button>
+          <button id="btn-reset" class="control-pill-btn stop-btn" title="Reset sentence">
+            <span>Reset</span>
+          </button>
+        </div>
+        <div id="sentence-token-count" class="sentence-token-count">
+          Token count: <strong>5 tokens</strong>
+        </div>
+      </div>
+
+      <!-- Context Window Slider Control -->
+      <div class="temp-control-box context-control-box">
+        <div class="temp-header-row">
+          <label for="context-slider" class="control-label">Context Window (<span id="context-status">All in memory</span>)</label>
+          <span id="context-value" class="temp-value">10 tokens</span>
+        </div>
+        <input
+          id="context-slider"
+          type="range"
+          min="2"
+          max="15"
+          step="1"
+          value="10"
+        />
+        <div class="temp-scale-labels">
+          <span>2 (Short)</span>
+          <span>6 (Medium)</span>
+          <span>15 (Long)</span>
+        </div>
+      </div>
+
+      <!-- Temperature Slider Control -->
+      <div class="temp-control-box">
+        <div class="temp-header-row">
+          <label for="temp-slider" class="control-label">Temperature (<span id="temp-regime">Balanced</span>)</label>
+          <span id="temp-value" class="temp-value">0.5</span>
+        </div>
+        <input
+          id="temp-slider"
+          type="range"
+          min="0.0"
+          max="1.0"
+          step="0.1"
+          value="0.5"
+        />
+        <div id="temp-scale-labels" class="temp-scale-labels">
+          <span>0.0 (Focused)</span>
+          <span>0.5 (Balanced)</span>
+          <span>1.0 (Creative)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main 3-Column Workspace -->
+  <main class="workspace">
+    <!-- Block 1: Sentence Broken Into Embeddings -->
+    <aside class="panel embedding-panel">
+      <div class="panel-header">
+        <h2>1. EMBEDDING</h2>
+        <span class="panel-sub">Sentence broken into tokens &amp; numerical vectors</span>
+      </div>
+
+      <div class="token-list-header">
+        <span>TOKEN</span>
+        <span>VECTOR (TOKEN + POS)</span>
+      </div>
+      <div id="embedding-token-list" class="embedding-token-list"></div>
+
+      <div class="embedding-note">
+        Each word is split into a token and converted into an 8-number embedding vector plus its position in the sentence.
+      </div>
+    </aside>
+
+    <!-- Block 2: Visual Diagram of the Transformer in Action -->
+    <section class="panel diagram-panel">
+      <div class="panel-header">
+        <h2>2. TRANSFORMER IN ACTION</h2>
+        <span class="panel-sub">How the Transformer processes your tokens to predict the next word</span>
+      </div>
+
+      <div class="transformer-graphic-wrap">
+        <svg id="transformer-diagram-svg" class="transformer-diagram-svg" viewBox="0 0 680 430" preserveAspectRatio="xMidYMid meet" aria-label="Transformer Architecture in Action"></svg>
+      </div>
+    </section>
+
+    <!-- Block 3: Output Probabilities & Selected Token -->
+    <aside class="panel output-panel">
+      <div class="panel-header">
+        <h2>3. PROBABILITIES</h2>
+        <span class="panel-sub">Softmax(logits / T) &amp; selected next token</span>
+      </div>
+
+      <!-- Selected Next Token Banner -->
+      <div class="selected-token-card">
+        <div class="selected-card-top">
+          <span class="selected-label">SELECTED NEXT TOKEN</span>
+          <button id="btn-resample" class="btn-resample" type="button" title="Sample again at current temperature">
+            &#x21bb; Resample
+          </button>
+        </div>
+        <div class="selected-token-row">
+          <span id="selected-token-text" class="selected-token-word">explore</span>
+          <span id="selected-token-prob" class="selected-token-pct">46.2%</span>
+        </div>
+      </div>
+
+      <div class="prob-list-header">
+        <span>CANDIDATE</span>
+        <span>PROBABILITY</span>
+      </div>
+      <div id="prob-list" class="prob-list"></div>
+
+      <div class="colorbar-section">
+        <span class="colorbar-caption">Embedding Vector Scale</span>
+        <div class="colorbar">
+          <span class="cb-neg">-1</span>
+          <div class="cb-gradient"></div>
+          <span class="cb-pos">+1</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "my-transformer-explainer",
+  "version": "1.0.0",
+  "description": "Custom streamlined Transformer Explainer recreation",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How Transformers Work — Beginner Slide Deck</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --header-bg: #183d4e;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --blue: #0877bd;
+      --orange: #f59322;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header */
+    .deck-header {
+      background: var(--header-bg);
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      display: grid;
+      grid-template-columns: 10px 10px;
+      gap: 3px;
+    }
+
+    .brand-icon span {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--orange);
+    }
+
+    .brand-icon span:nth-child(2),
+    .brand-icon span:nth-child(3) {
+      background: #38bdf8;
+    }
+
+    .brand h1 {
+      font-size: 17px;
+      font-weight: 400;
+    }
+
+    .brand h1 strong {
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-link-btn {
+      text-decoration: none;
+      background: var(--orange);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 999px;
+      transition: opacity 0.15s;
+    }
+
+    .app-link-btn:hover {
+      opacity: 0.92;
+    }
+
+    /* Slide Viewport */
+    .deck-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 24px;
+    }
+
+    .slide-card {
+      width: 100%;
+      max-width: 1040px;
+      min-height: 540px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+      padding: 44px 52px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .slide-card.active {
+      display: flex;
+    }
+
+    .slide-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--blue);
+      background: #e0f2fe;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    .slide-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--header-bg);
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .slide-lead {
+      font-size: 18px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .slide-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .slide-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: #f8fafc;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+
+    .info-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--header-bg);
+      margin-bottom: 8px;
+    }
+
+    .info-box p,
+    .info-box li {
+      font-size: 14.5px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .info-box ul {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .demo-box {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      border: 1.5px solid #fdba74;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-top: auto;
+    }
+
+    .demo-box-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #c2410c;
+      margin-bottom: 4px;
+    }
+
+    .demo-box p {
+      font-size: 14.5px;
+      color: #7c2d12;
+      line-height: 1.45;
+    }
+
+    .speaker-note {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+    }
+
+    .vec-demo {
+      display: inline-flex;
+      gap: 3px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    .vec-demo span {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    /* Footer Controls */
+    .deck-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-inner {
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-btn {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav-btn.primary {
+      background: var(--header-bg);
+      color: #ffffff;
+      border: none;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .slide-counter {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <header class="deck-header">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <h1>How a <strong>Transformer</strong> Works — Beginner Guide</h1>
+    </div>
+    <div class="header-actions">
+      <a href="index.html" class="app-link-btn">Open Live Playground &rarr;</a>
+    </div>
+  </header>
+
+  <main class="deck-stage">
+    <!-- Slide 1 -->
+    <section class="slide-card active">
+      <div>
+        <span class="slide-badge">Slide 1 of 10 &middot; Introduction</span>
+        <h2 class="slide-title">How Do AI Models Like ChatGPT Actually Work?</h2>
+        <p class="slide-lead">
+          Behind all the magic of modern AI is a single core invention called the <strong>Transformer</strong> — and its job is surprisingly simple: <strong>predicting the very next word</strong>.
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>What It Looks Like</h3>
+            <p>You give the AI an unfinished sentence:<br /><br />
+            <strong>"The cat sat on the ___"</strong></p>
+          </div>
+          <div class="info-box">
+            <h3>What the Transformer Does</h3>
+            <p>It calculates probabilities for every word it knows and picks the best next word:<br /><br />
+            <strong>&rarr; "warm" (55.1%)</strong> or <strong>"mat" (22.4%)</strong></p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Live App Walkthrough</div>
+        <p>Look at the top bar of the app: we type a <strong>Partial Sentence</strong> on the left, and the Transformer predicts the <strong>Selected Next Token</strong> on the right.</p>
+      </div>
+    </section>
+
+    <!-- Slide 2 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 2 of 10 &middot; The 3-Step Pipeline</span>
+        <h2 class="slide-title">The 3 Building Blocks of Our App</h2>
+        <p class="slide-lead">
+          Every time the Transformer predicts a word, your sentence travels from left to right through the 3 panels on screen:
+        </p>
+        <div class="slide-grid-3">
+          <div class="info-box">
+            <h3>1. EMBEDDING</h3>
+            <p>Splits your sentence into individual word <strong>tokens</strong> and turns each word into a list of numbers (colors).</p>
+          </div>
+          <div class="info-box">
+            <h3>2. TRANSFORMER</h3>
+            <p>Connects words together using <strong>Self-Attention</strong> (context) and a <strong>Neural Network (MLP)</strong>.</p>
+          </div>
+          <div class="info-box">
+            <h3>3. PROBABILITIES</h3>
+            <p>Converts the final numbers into percentage scores and selects the winning next word.</p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Key Takeaway for Beginners</div>
+        <p><strong>Text In &rarr; Numbers &rarr; Context &amp; Thinking &rarr; Probabilities &rarr; Next Word Out.</strong></p>
+      </div>
+    </section>
+
+    <!-- Slide 3 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 3 of 10 &middot; Panel 1: Embedding</span>
+        <h2 class="slide-title">Step 1: Turning Words Into Numbers (Embeddings)</h2>
+        <p class="slide-lead">
+          Computers cannot multiply or add letters like <code>"c-a-t"</code>. First, the model splits the sentence into <strong>Tokens</strong> and looks up a numerical list (a <strong>Vector</strong>) for each word.
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>What Are Tokens?</h3>
+            <ul>
+              <li>Each word is numbered in order: <code>#0</code>, <code>#1</code>, <code>#2</code>...</li>
+              <li>The Token Counter under the input box shows how many tokens are in your sentence.</li>
+            </ul>
+          </div>
+          <div class="info-box">
+            <h3>What Are the Colored Squares?</h3>
+            <ul>
+              <li>Each word becomes 8 numbers between <strong>-1</strong> and <strong>+1</strong>.</li>
+              <li><strong style="color:#0877bd">Blue</strong> = Positive (+1), <strong>White</strong> = Zero (0), <strong style="color:#f59322">Orange</strong> = Negative (-1).</li>
+              <li>Words with similar roles share similar number patterns!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Try It in the App</div>
+        <p>Look at <strong>1. EMBEDDING</strong> on the left and check the <strong>Embedding Vector Scale (-1 to +1)</strong> at the bottom right.</p>
+      </div>
+    </section>
+
+    <!-- Slide 4 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 4 of 10 &middot; Panel 1: Position Matters</span>
+        <h2 class="slide-title">Why It Says "TOKEN + POS" (Position)</h2>
+        <p class="slide-lead">
+          Word order changes everything: <em>"The dog bit the man"</em> means something very different from <em>"The man bit the dog"</em>!
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>Word Meaning + Spot in Line</h3>
+            <p>To make sure the Transformer knows word order, it adds a <strong>Positional Encoding (POS)</strong> to each word's numbers based on whether it is at spot <code>#0</code>, <code>#1</code>, or <code>#4</code>.</p>
+          </div>
+          <div class="info-box">
+            <h3>Spot the Difference!</h3>
+            <p>In <code>"The cat sat on the"</code>, compare <strong><code>#0 The</code></strong> and <strong><code>#4 the</code></strong>:<br />
+            Same word = same overall color pattern, <strong>but slightly different shades</strong> because one is at position #0 and one is at position #4!</p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Live App Demo #1</div>
+        <p>Click <strong>Example 3</strong> (<code>"The cat sat on the"</code>) and point out rows <code>#0 The</code> and <code>#4 the</code> in Block 1.</p>
+      </div>
+    </section>
+
+    <!-- Slide 5 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 5 of 10 &middot; Panel 2: Self-Attention</span>
+        <h2 class="slide-title">Step 2A: Masked Self-Attention (Finding Clues)</h2>
+        <p class="slide-lead">
+          How does the model know <em>what</em> you feed in <code>"I have a parrot. Every morning I feed my ___"</code>? Through <strong>Self-Attention</strong>!
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>Looking Back for Clues</h3>
+            <ul>
+              <li>The last word (<code>"my"</code>) looks back at all earlier words in the sentence.</li>
+              <li><strong>Orange curves</strong> show which earlier words it connects to.</li>
+              <li><strong>Thicker curve = Stronger attention!</strong></li>
+            </ul>
+          </div>
+          <div class="info-box">
+            <h3>Why "Masked"?</h3>
+            <ul>
+              <li>When predicting the next word, the model can only look at <strong>past words</strong>, never future words.</li>
+              <li>It matches a <strong>Query (Q)</strong> ("what am I looking for after <em>feed my</em>?") with a <strong>Key (K)</strong> ("I am a <em>parrot</em>!").</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Live App Demo #2</div>
+        <p>Click <strong>Parrot (Context Test)</strong>. Point to how the model remembers <code>"parrot"</code> from the first sentence and predicts <strong>"parrot"</strong> as #1!</p>
+      </div>
+    </section>
+
+    <!-- Slide 6 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 6 of 10 &middot; Context Window</span>
+        <h2 class="slide-title">Context Window: How Much Can AI Remember?</h2>
+        <p class="slide-lead">
+          Every AI model has a limited working memory called its <strong>Context Window</strong>. Words that fall outside the window are completely forgotten!
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>Window = 10 Tokens (In Memory)</h3>
+            <p>All 9 words of <code>"I have a parrot. Every morning I feed my"</code> fit inside memory.<br /><br />
+            The model remembers your parrot &rarr; Predicts <strong>"parrot"</strong>.</p>
+          </div>
+          <div class="info-box">
+            <h3>Window = 5 Tokens (Forgotten!)</h3>
+            <p>Only <code>"Every morning I feed my"</code> fits in memory. <code>"I have a parrot."</code> is crossed out as <strong>FORGOTTEN</strong>.<br /><br />
+            The model forgets your parrot &rarr; Reverts to <strong>"cat"</strong>!</p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Live App Demo #3 (Crowd Favorite!)</div>
+        <p>With <strong>Parrot (Context Test)</strong> selected, slowly drag the <strong>Context Window slider</strong> from <code>10</code> down to <code>5</code>. Watch tokens <code>#0–#3</code> turn <strong>FORGOTTEN</strong> and watch the prediction switch from <code>"parrot"</code> to <code>"cat"</code>!</p>
+      </div>
+    </section>
+
+    <!-- Slide 7 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 7 of 10 &middot; Panel 2: Feed-Forward MLP</span>
+        <h2 class="slide-title">Step 2B: Feed-Forward MLP (The Brain's Knowledge)</h2>
+        <p class="slide-lead">
+          After Self-Attention gathers context from the sentence, the signal flows into the <strong>Feed-Forward MLP</strong> box in the middle of Block 2.
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>Self-Attention vs. MLP</h3>
+            <ul>
+              <li><strong>Self-Attention</strong> looks <em>sideways</em> at other words in your prompt (e.g., finding <code>"parrot"</code>).</li>
+              <li><strong>Feed-Forward MLP</strong> is a Neural Network that recalls <em>world facts</em> learned during training (e.g., parrots eat seeds/fruit; cats sit on warm mats).</li>
+            </ul>
+          </div>
+          <div class="info-box">
+            <h3>+ Residual &amp; LayerNorm</h3>
+            <ul>
+              <li>Notice the dotted arch over the top (<code>+ Residual &amp; LayerNorm</code>).</li>
+              <li>This is a "highway shortcut" so the original word signal is never lost while passing through the neural network.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Visual Check in Block 2</div>
+        <p>Trace the blue dashed line from the bottom of <strong>Masked Self-Attention</strong> into the <strong>Feed-Forward MLP</strong> neural network nodes, and out to the orange <strong>SELECTED WORD</strong> box.</p>
+      </div>
+    </section>
+
+    <!-- Slide 8 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 8 of 10 &middot; Panel 3: Probabilities</span>
+        <h2 class="slide-title">Step 3: Softmax &amp; Next-Word Probabilities</h2>
+        <p class="slide-lead">
+          A Transformer never just knows a single answer — it calculates a <strong>probability percentage</strong> for candidate words using a math function called <strong>Softmax</strong>.
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>What Softmax Does</h3>
+            <p>Turns raw neural network scores (logits) into clean percentages between <strong>0% and 100%</strong> that all add up to 100%.</p>
+          </div>
+          <div class="info-box">
+            <h3>Reading Panel 3</h3>
+            <p>The top box shows the <strong>SELECTED NEXT TOKEN</strong>, and the bars below show the runners-up (e.g., <code>parrot</code>, <code>bird</code>, <code>pet</code>, <code>cat</code>, <code>dog</code>).</p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Tip</div>
+        <p>You can also click any candidate bar in <strong>3. PROBABILITIES</strong> to manually select that word before appending!</p>
+      </div>
+    </section>
+
+    <!-- Slide 9 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 9 of 10 &middot; Temperature Control</span>
+        <h2 class="slide-title">Temperature (0.0 to 1.0): Focus vs. Creativity</h2>
+        <p class="slide-lead">
+          Why does ChatGPT sometimes give the exact same answer, and other times give creative or surprising answers? Because of <strong>Temperature (T)</strong>!
+        </p>
+        <div class="slide-grid-3">
+          <div class="info-box">
+            <h3>T = 0.0 (Focused)</h3>
+            <p><strong>100% on the #1 word.</strong><br />Always picks the single safest, most predictable word. Best for math, coding, and facts.</p>
+          </div>
+          <div class="info-box">
+            <h3>T = 0.5 (Balanced)</h3>
+            <p><strong>Natural spread.</strong><br />Favors the top choice (~55%) while keeping realistic alternatives alive.</p>
+          </div>
+          <div class="info-box">
+            <h3>T = 1.0 (Creative)</h3>
+            <p><strong>Flattens the bars.</strong><br />Gives #2, #3, and #4 words a big chance to win. Great for brainstorming &amp; stories!</p>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Live App Demo #4</div>
+        <p>Drag <strong>Temperature</strong> to <code>0.0</code> (watch the top bar hit <strong>100%</strong>). Then drag it to <code>1.0</code> (watch the bars flatten out) and click <strong>&#x21bb; Resample</strong> several times to see different words get picked!</p>
+      </div>
+    </section>
+
+    <!-- Slide 10 -->
+    <section class="slide-card">
+      <div>
+        <span class="slide-badge">Slide 10 of 10 &middot; The Generation Loop</span>
+        <h2 class="slide-title">How One Word Becomes a Whole Paragraph</h2>
+        <p class="slide-lead">
+          If a Transformer only predicts <strong>one word at a time</strong>, how does it write a whole email or essay? By repeating the loop!
+        </p>
+        <div class="slide-grid-2">
+          <div class="info-box">
+            <h3>The Autoregressive Loop</h3>
+            <ul>
+              <li><strong>Pass 1:</strong> <code>"Data visualization empowers users to"</code> &rarr; picks <strong>"explore"</strong></li>
+              <li><strong>Pass 2:</strong> <code>"... users to explore"</code> &rarr; picks <strong>"complex"</strong></li>
+              <li><strong>Pass 3:</strong> <code>"... to explore complex"</code> &rarr; picks <strong>"models"</strong></li>
+            </ul>
+          </div>
+          <div class="info-box">
+            <h3>Summary: You Now Understand Transformers!</h3>
+            <ul>
+              <li><strong>Embeddings:</strong> Words + Position &rarr; Numbers</li>
+              <li><strong>Context Window &amp; Self-Attention:</strong> Connecting clues in memory</li>
+              <li><strong>MLP + Softmax + Temperature:</strong> Scoring and picking the next word</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-box-title">Final Live App Demo #5</div>
+        <p>Click <strong>Example 1</strong>, then click <strong>&#x25b6; Append Selected</strong> 3 times in a row. Watch the sentence grow word-by-word and watch all 3 panels update live!</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="deck-footer">
+    <div class="footer-inner">
+      <button id="btn-prev" class="nav-btn" disabled>&larr; Previous</button>
+      <span id="slide-counter" class="slide-counter">1 / 10</span>
+      <button id="btn-next" class="nav-btn primary">Next Slide &rarr;</button>
+    </div>
+  </footer>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide-card"));
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const counter = document.getElementById("slide-counter");
+    let current = 0;
+
+    function showSlide(index) {
+      current = Math.max(0, Math.min(slides.length - 1, index));
+      slides.forEach((s, i) => s.classList.toggle("active", i === current));
+      btnPrev.disabled = current === 0;
+      btnNext.disabled = current === slides.length - 1;
+      counter.textContent = `${current + 1} / ${slides.length}`;
+    }
+
+    btnPrev.addEventListener("click", () => showSlide(current - 1));
+    btnNext.addEventListener("click", () => showSlide(current + 1));
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        showSlide(current + 1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        showSlide(current - 1);
+      }
+    });
+  </script>
+</body>
+</html>
